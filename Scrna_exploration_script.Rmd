@@ -1,0 +1,153 @@
+---
+title: "Scrna exploration script"
+author: "Johannes Schoeneich"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# The R-packages Seurat and ggplot2 are needed for this script
+library(ggplot2, quietly = T)
+library(Seurat, quietly = T)
+```
+
+# User input
+
+```{r}
+# Press ctrl + shift + enter to run whole chunks (or the little green arrow on the right)
+# On the top Knit --> Knit to html/pdf, to save the whole script as a html file to view in the browser
+# or as pdf (might take a few minutes)
+
+# Write the path of the R object here
+PATH = "C:/Users/Hannes/Desktop/scrna_uninfected.Rds"
+
+# Change the genename here for all plots (or change the genes individually per plot).
+# Either one name or multiple genes separated by comma. Case sensitivity matters!
+genename = c("Ccnd1","Ccnd2","Ccnd3","Ccne1","Muc2","Olfm4","Muc3","Lct","Chga","Chgb","Lgr5")
+
+# Co-expression of two genes. They are colored on a heatmap between red and green.
+co_expression = c("Lgr5","Chga")
+
+# Choose the cluster names (names according to scrna@meta.data)
+# Default is the broad annotation (Stem, EEC, Goblet_Paneth, Enterocyte)
+cluster = "int_0.3_broad"
+
+# Advanced! Use a precalculated UMAP resolution (no cluster names, just numbers)
+# Uncomment the following two lines to change UMAP resolution (values can range from 0.1 to 0.8)
+
+# resolution = 0.3
+# cluster = paste0("integrated_snn_res.", resolution)
+```
+
+# Read in the dataset
+
+```{r cache.lazy=F}
+scrna<-readRDS(PATH)
+DefaultAssay(scrna) <- "RNA"
+Idents(scrna) <- cluster
+```
+
+# UMAP with clusters
+
+```{r}
+DimPlot(scrna, reduction = "INTE_UMAP", group.by = cluster,
+                                       label=F, label.size=6) + theme(plot.title = element_blank())
+```
+
+# Split UMAP
+
+```{r out.width = "400%",fig.width=18, fig.height=6}
+DimPlot(scrna, reduction = "INTE_UMAP", group.by =  cluster, split.by = "stage",
+                                       label=F, label.size=6) + theme(plot.title = element_blank())
+```
+
+# Violin plot
+
+```{r fig.height=16, fig.width=24}
+#split by stage (order is day1,day5,day10,day25)
+VlnPlot(object = scrna, features = genename, split.by = 'stage', pt.size = 0)
+
+#split by clusters
+VlnPlot(object = scrna, features = genename, split.by = cluster, pt.size = 0)
+```
+
+# Gene expression split by age
+
+```{r fig.height=20, fig.width=20}
+for (i in seq(1, length(genename), by = 4)){
+      ni = min(i + 3, length(genename))
+      print(FeaturePlot(
+        object = scrna,
+        pt.size = 0.01,
+        label = FALSE,
+        features = genename[i:ni],
+        reduction = "INTE_UMAP",
+        order = TRUE,
+        cols = c("lightgrey", "red"),
+        ncol = 2,
+        max.cutoff = "q95",
+        split.by = "stage"
+      ))
+}
+```
+
+# Gene expression full UMAP
+
+```{r fig.height=8, fig.width=8}
+for (i in seq(1, length(genename), by = 4)){
+      ni = min(i + 3, length(genename))
+      print(FeaturePlot(
+        object = scrna,
+        pt.size = 0.01,
+        label = FALSE,
+        features = genename[i:ni],
+        reduction = "INTE_UMAP",
+        order = TRUE,
+        cols = c("lightgrey", "red"),
+        ncol = 2,
+        max.cutoff = "q95"
+      ))
+}
+```
+
+# Aggregated expression of multiple genes
+
+```{r}
+plot_aggregate_expression <- function(object,gene_names,meta_name="aggr_exp"){
+  # Are all gene names in the Seurat object?
+  # Use only those which are, otherwise there is an error!
+  gene_query <- gene_names %in% rownames(object@assays$RNA)
+  if(sum(gene_query)> 0){
+    gene_names <- gene_names[gene_query]
+    meta_name <- paste(c(meta_name,gene_names), collapse = ".")
+    #Get the Aggregate expression
+    object<- MetaFeature(
+      object=object,
+      features=gene_names,
+      meta.name = meta_name
+    )
+    FeaturePlot(object,features = meta_name,reduction = "INTE_UMAP",
+                max.cutoff = "q95", label = F, order=T,cols = c("lightgrey", "red"))
+  } #error capture
+  else {return(capture.output(cat("Error! Could not find any of the following genes",
+                                  gene_names,"for meta name", meta_name)))
+  }
+}
+
+plot_aggregate_expression(scrna,genename,meta_name="aggr_exp")
+```
+
+# Gene Co-Expression
+
+```{r fig.height=6, fig.width=16}
+FeaturePlot(scrna, features = co_expression, order = T, max.cutoff = 'q95', blend = TRUE)
+```
