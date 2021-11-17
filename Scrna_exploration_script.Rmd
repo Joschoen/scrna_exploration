@@ -148,6 +148,6 @@ plot_aggregate_expression(scrna,genename,meta_name="aggr_exp")
 
 # Gene Co-Expression
 
-```{r fig.height=6, fig.width=16}
+```{r fig.height=6, fig.width=20}
 FeaturePlot(scrna,reduction = "INTE_UMAP", features = co_expression, order = T, max.cutoff = 'q95', blend = TRUE)
 ```
