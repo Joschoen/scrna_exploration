@@ -15,7 +15,7 @@ output:
 ---
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# The R-packages Seurat and ggplot2 are needed for this script
+# The R-packages Seurat and ggplot2 are required for this script
 library(ggplot2, quietly = T)
 library(Seurat, quietly = T)
 ```
@@ -83,7 +83,7 @@ VlnPlot(object = scrna, features = genename, split.by = 'stage', pt.size = 0)
 VlnPlot(object = scrna, features = genename, split.by = cluster, pt.size = 0)
 ```
 
-# Gene expression split by age
+# Gene expression split by stage
 
 ```{r fig.height=20, fig.width=20}
 for (i in seq(1, length(genename), by = 4)){
@@ -103,7 +103,7 @@ for (i in seq(1, length(genename), by = 4)){
 }
 ```
 
-# Gene expression full UMAP
+# Gene expression in UMAP
 
 ```{r fig.height=8, fig.width=8}
 for (i in seq(1, length(genename), by = 4)){
@@ -131,7 +131,9 @@ plot_aggregate_expression <- function(object,gene_names,meta_name="aggr_exp"){
   gene_query <- gene_names %in% rownames(object@assays$RNA)
   if(sum(gene_query)> 0){
     gene_names <- gene_names[gene_query]
+    if(length(gene_names) <5){
     meta_name <- paste(c(meta_name,gene_names), collapse = ".")
+    }
     #Get the Aggregate expression
     object<- MetaFeature(
       object=object,
@@ -142,7 +144,7 @@ plot_aggregate_expression <- function(object,gene_names,meta_name="aggr_exp"){
                 max.cutoff = "q95", label = F, order=T,cols = c("lightgrey", "red"))
   } #error capture
   else {return(capture.output(cat("Error! Could not find any of the following genes",
-                                  gene_names,"for meta name", meta_name)))
+                                  gene_names)))
   }
 }
 
