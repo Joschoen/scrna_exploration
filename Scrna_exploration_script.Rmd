@@ -43,7 +43,8 @@ genename <- ""
 co_expression <- ""
 
 # Choose the cluster names (names according to scrna@meta.data)
-# Default is the broad annotation (Stem, EEC, Goblet_Paneth, Enterocyte, Tuft)
+# Default is the broad annotation (Stem, EEC, Goblet_Paneth, Enterocyte, Tuft). Works only for my kinetic dataset. 
+# All other people please use the advanced settings
 cluster <- "int_0.3_broad_tuft"
 ```
 
