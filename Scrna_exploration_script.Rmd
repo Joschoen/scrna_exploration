@@ -36,7 +36,7 @@ PATH <- ""
 genename <- 
 
 # Alternative: read in a list of genes (each gene in a new line)
-# genelistPATH <- "../Arbeit/interferon_signatures_mouse.txt"
+# genelistPATH <- ""
 # genename <- scan(genelistPATH,what = "character")
 
 # Co-expression of only two genes. They are colored on a heatmap between red and green.
@@ -152,7 +152,8 @@ if(length(genename)>1){
 DotPlot(
       object = scrna,
       features = genename,
-      group.by = cluster
+      group.by = cluster,
+      cols = c("darkgrey", "red")
     ) #+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
 }
 ```
