@@ -71,11 +71,8 @@ DefaultAssay(scrna) <- assay
 Idents(scrna) <- cluster
 
 genename <- genename[genename %in% rownames(scrna@assays$RNA)]
-sums <- rep(NA,length(genename))
-for(i in 1:length(genename)){
-  sums[i]<-sum(scrna@assays$RNA@data[genename[i],])
-}
-
+#sometimes rowsums are 0 and cause problems
+sums <- rowSums(scrna@assays$RNA@data[genename,])
 genename <- genename[which(sums!=0)]
 
 #write.table(genename,file = "genes_from_input_used.txt",row.names = F,quote = F,col.names = F)
