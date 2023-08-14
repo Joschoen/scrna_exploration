@@ -15,10 +15,16 @@ output:
 ---
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-#TODO Magic implementation in the script as option
 # The R-packages Seurat and ggplot2 are required for this script
 library(ggplot2, quietly = T)
 library(Seurat, quietly = T)
+
+loadRData <- function(fileName){
+  #loads an RData file, and returns it
+  load(fileName)
+  get(ls()[ls() != "fileName"])
+}
+
 ```
 
 # User input
@@ -29,45 +35,34 @@ library(Seurat, quietly = T)
 # or as pdf (might take a few minutes)
 
 # Write the path of the R object here
-PATH <- ""
+PATH <- "my_R_object"
 
 # Change the genename here for all plots (or change the genes individually per plot).
 # Either one name or multiple genes in a vector. Case sensitivity matters!
-genename <- 
+genename <- c("Muc2","Cd36")
 
 # Alternative: read in a list of genes (each gene in a new line)
-# genelistPATH <- ""
-# genename <- scan(genelistPATH,what = "character")
+#genelistPATH <- ""
+#genename <- scan(genelistPATH,what = "character")
 
 # Co-expression of only two genes. They are colored on a heatmap between red and green.
-co_expression <- 
+#co_expression <- c("Muc2","Cd36")
 
 # Choose the cluster names (names according to scrna@meta.data)
-# Default is the broad annotation (Stem, EEC, Goblet_Paneth, Enterocyte, Tuft). Works only for my kinetic dataset. 
+# Default is the broad annotation (Stem, EEC, Goblet_Paneth, Enterocyte, Tuft).
+# Works only for my kinetic dataset. 
 # All other people please use the advanced settings
-cluster <- "int_0.3_broad_tuft"
+cluster <- ""
 ```
 
 #User input: Advanced features
 
-```{r}
-# Use a precalculated UMAP resolution (no cluster names, just numbers)
-# Uncomment the following two lines to change UMAP resolution (values can range from 0.1 to 0.8)
-
-# resolution <- 0.3
-# cluster <- paste0("integrated_snn_res.", resolution)
-
-# Which assay to use?
-# There are three options: RNA (default "normal data"), MAGIC_RNA (corrected and denoised data), integrated (special cases)
-assay <- "RNA"
-```
-
-
 ```{r, echo=FALSE, cache.lazy=F}
 #Read in the dataset and do some basic data transformations and adjustments
 
-scrna<-readRDS(PATH)
-DefaultAssay(scrna) <- assay
+scrna <- loadRData(PATH)
+scrna <- UpdateSeuratObject(object = scrna)
+
 Idents(scrna) <- cluster
 
 genename <- genename[genename %in% rownames(scrna@assays$RNA)]
@@ -75,52 +70,27 @@ genename <- genename[genename %in% rownames(scrna@assays$RNA)]
 sums <- rowSums(scrna@assays$RNA@data[genename,])
 genename <- genename[which(sums!=0)]
 
-#write.table(genename,file = "genes_from_input_used.txt",row.names = F,quote = F,col.names = F)
+write.table(genename,file = "genes_from_input_used.txt",row.names = F,quote = F,col.names = F)
 ```
 
 # UMAP with clusters
 
-```{r, echo=FALSE}
-DimPlot(scrna, reduction = "INTE_UMAP", group.by = cluster,
-                                       label=F, label.size=6) + theme(plot.title = element_blank())
-```
-
-# Split UMAP
-
-```{r out.width = "400%",fig.width=18, fig.height=6, echo=FALSE}
-DimPlot(scrna, reduction = "INTE_UMAP", group.by =  cluster, split.by = "stage",
-                                       label=F, label.size=6) + theme(plot.title = element_blank())
+```{r, echo=FALSE, out.width = "400%",fig.width=12, fig.height=6,}
+DimPlot(scrna, reduction = "tsne", group.by = cluster,
+                                       label=T, label.size=6) + theme(plot.title = element_blank())
 ```
 
 # Violin plot
 
 ```{r fig.height=16, fig.width=24, echo=FALSE, message=FALSE, warning=FALSE}
-
 #split by stage (order is day1,day5,day10,day25)
-VlnPlot(object = scrna, features = genename, split.by = 'stage', pt.size = 0)
+#VlnPlot(object = scrna, features = genename, split.by = 'stage', pt.size = 0)
 
 #split by clusters
-VlnPlot(object = scrna, features = genename, split.by = cluster, pt.size = 0)
-```
-
-# Gene expression split by stage
-
-```{r fig.height=7, fig.width=14, echo=FALSE}
 for (i in seq(1, length(genename), by = 4)){
       ni = min(i + 3, length(genename))
-      print(FeaturePlot(
-        object = scrna,
-        pt.size = 0.01,
-        label = FALSE,
-        features = genename[i:ni],
-        reduction = "INTE_UMAP",
-        order = TRUE,
-        cols = c("lightgrey", "red"),
-        ncol = 2,
-        max.cutoff = "q95",
-        split.by = "stage"
-      ))
-}
+      print(VlnPlot(object = scrna, features = genename[i:ni], split.by = cluster, pt.size = 0))
+      }
 ```
 
 # Gene expression in UMAP
@@ -131,9 +101,10 @@ for (i in seq(1, length(genename), by = 4)){
       print(FeaturePlot(
         object = scrna,
         pt.size = 0.01,
-        label = FALSE,
+        label = TRUE,
+        label.size = 3,
         features = genename[i:ni],
-        reduction = "INTE_UMAP",
+        reduction = "tsne",
         order = TRUE,
         cols = c("lightgrey", "red"),
         ncol = 2,
@@ -144,14 +115,14 @@ for (i in seq(1, length(genename), by = 4)){
 
 # Gene expression Dotplot
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=16, fig.width=24}
 if(length(genename)>1){
 DotPlot(
       object = scrna,
       features = genename,
       group.by = cluster,
       cols = c("darkgrey", "red")
-    ) #+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    ) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 ```
 
@@ -173,8 +144,8 @@ plot_aggregate_expression <- function(object,gene_names,meta_name="aggr_exp"){
       features=gene_names,
       meta.name = meta_name
     )
-    FeaturePlot(object,features = meta_name,reduction = "INTE_UMAP",
-                max.cutoff = "q95", label = F, order=T,cols = c("lightgrey", "red","black"))
+    FeaturePlot(object,features = meta_name,reduction = "tsne",
+                max.cutoff = "q95", label = T, order=T,cols = c("lightgrey", "red","black"))
   } #error capture
   else {return(capture.output(cat("Error! Could not find any of the following genes",
                                   gene_names)))
@@ -186,6 +157,7 @@ plot_aggregate_expression(scrna,genename,meta_name="aggr_exp")
 
 # Gene Co-Expression
 
-```{r fig.height=6, fig.width=20, echo=FALSE}
-FeaturePlot(scrna,reduction = "INTE_UMAP", features = co_expression, order = T, max.cutoff = 'q95', blend = TRUE)
+```{r fig.height=6, fig.width=20, echo=FALSE,eval=FALSE}
+FeaturePlot(scrna,reduction = "tsne", features = co_expression, order = T, 
+            max.cutoff = 'q95', blend = TRUE)
 ```
